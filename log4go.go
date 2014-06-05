@@ -52,6 +52,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"encoding/json"
 )
 
 // Version information
@@ -292,6 +293,41 @@ func (log Logger) Log(lvl Level, source, message string) {
 			continue
 		}
 		filt.LogWrite(rec)
+	}
+}
+
+// Send a log message with manual level, source, and message.
+func (log Logger) Json(data []byte) {
+	var rec LogRecord
+	
+	// Make the log record
+	err := json.Unmarshal(data, &rec)
+	if err != nil {
+		// log to standard output
+		msg := "Err: " + err.Error() + " - " + string(data[0:])
+		log.intLogf(WARNING, msg)
+		return
+	}
+	
+	skip := true
+
+	// Determine if any logging will be done
+	for _, filt := range log {
+		if rec.Level >= filt.Level {
+			skip = false
+			break
+		}
+	}
+	if skip {
+		return
+	}
+
+	// Dispatch the logs
+	for _, filt := range log {
+		if rec.Level < filt.Level {
+			continue
+		}
+		filt.LogWrite(&rec)
 	}
 }
 
