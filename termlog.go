@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"time"
+	"github.com/daviddengcn/go-colortext"
 )
 
 var stdout io.Writer = os.Stdout
@@ -26,10 +27,27 @@ func (w ConsoleLogWriter) run(out io.Writer) {
 	var timestrAt int64
 
 	for rec := range w {
+		switch rec.Level {
+			case CRITICAL:
+				ct.ChangeColor(ct.Red, true, ct.White, false)
+			case ERROR:
+				ct.ChangeColor(ct.Red, false, 0, false)
+			case WARNING:
+				ct.ChangeColor(ct.Yellow, false, 0, false)
+			case INFO:
+				ct.ChangeColor(ct.Green, false, 0, false)
+			case DEBUG:
+				ct.ChangeColor(ct.Cyan, false, 0, false)
+			case TRACE:
+				ct.ChangeColor(ct.Blue, false, 0, false)
+			default:
+		}
 		if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
 			timestr, timestrAt = rec.Created.Format("15:04:05 MST 2006/01/02"), at
 		}
 		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] ", rec.Message, "\n")
+		ct.ResetColor()
+		// fmt.Fprint(out, "\n")
 	}
 }
 
@@ -43,5 +61,5 @@ func (w ConsoleLogWriter) LogWrite(rec *LogRecord) {
 // send log messages to this logger after a Close have undefined behavior.
 func (w ConsoleLogWriter) Close() {
 	close(w)
-	time.Sleep(50 * time.Millisecond) // Try to give console I/O time to complete
+	time.Sleep(100 * time.Millisecond)  // Ugly code, but more faithfully than runtime.Gosched()
 }
