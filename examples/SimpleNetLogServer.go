@@ -31,7 +31,6 @@ func handleListener(log *l4g.Logger, listener *net.UDPConn){
 	bufleft := buffer[:buflen]
 	
 	log.Json(bufleft)
-
 }
 
 func checkError(err error) {
