@@ -49,6 +49,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+    "os/exec"
+    "path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -84,6 +86,8 @@ var (
 	levelStrings = [...]string{"FNST", "FINE", "DEBG", "TRAC", "INFO", "WARN", "EROR", "CRIT"}
 )
 
+var appString string;
+
 func (l Level) String() string {
 	if l < 0 || int(l) > len(levelStrings) {
 		return "UNKNOWN"
@@ -104,6 +108,7 @@ var (
 type LogRecord struct {
 	Level   Level     // The log level
 	Created time.Time // The time at which the log message was created (nanoseconds)
+	App     string    // App name
 	Source  string    // The message source
 	Message string    // The log message
 }
@@ -138,6 +143,8 @@ type Logger map[string]*Filter
 // DEPRECATED: Use make(Logger) instead.
 func NewLogger() Logger {
 	os.Stderr.WriteString("warning: use of deprecated NewLogger\n")
+	file, _ := exec.LookPath(os.Args[0])
+    appString = filepath.Base(file) 
 	return make(Logger)
 }
 
@@ -147,6 +154,8 @@ func NewLogger() Logger {
 // DEPRECATED: use NewDefaultLogger instead.
 func NewConsoleLogger(lvl Level) Logger {
 	os.Stderr.WriteString("warning: use of deprecated NewConsoleLogger\n")
+	file, _ := exec.LookPath(os.Args[0])
+    appString = filepath.Base(file) 
 	return Logger{
 		"stdout": &Filter{lvl, NewConsoleLogWriter()},
 	}
@@ -155,6 +164,8 @@ func NewConsoleLogger(lvl Level) Logger {
 // Create a new logger with a "stdout" filter configured to send log messages at
 // or above lvl to standard output.
 func NewDefaultLogger(lvl Level) Logger {
+	file, _ := exec.LookPath(os.Args[0])
+    appString = filepath.Base(file) 
 	return Logger{
 		"stdout": &Filter{lvl, NewConsoleLogWriter()},
 	}
@@ -212,6 +223,7 @@ func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
 	rec := &LogRecord{
 		Level:   lvl,
 		Created: time.Now(),
+		App:     appString,
 		Source:  src,
 		Message: msg,
 	}
@@ -251,6 +263,7 @@ func (log Logger) intLogc(lvl Level, closure func() string) {
 	rec := &LogRecord{
 		Level:   lvl,
 		Created: time.Now(),
+		App:     appString,
 		Source:  src,
 		Message: closure(),
 	}
@@ -283,6 +296,7 @@ func (log Logger) Log(lvl Level, source, message string) {
 	rec := &LogRecord{
 		Level:   lvl,
 		Created: time.Now(),
+		App:     appString,
 		Source:  source,
 		Message: message,
 	}

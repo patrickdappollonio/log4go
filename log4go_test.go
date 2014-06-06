@@ -85,11 +85,12 @@ var logRecordWriteTests = []struct {
 		Test: "Normal message",
 		Record: &LogRecord{
 			Level:   CRITICAL,
+			App:     "app",
 			Source:  "source",
 			Message: "message",
 			Created: now,
 		},
-		Console: "[23:31:30 UTC 2009/02/13] [CRIT] message\n",
+		Console: "[23:31:30 UTC 2009/02/13] [CRIT] [app] [source] message",
 	},
 }
 

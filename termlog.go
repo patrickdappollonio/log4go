@@ -45,9 +45,9 @@ func (w ConsoleLogWriter) run(out io.Writer) {
 		if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
 			timestr, timestrAt = rec.Created.Format("15:04:05 MST 2006/01/02"), at
 		}
-		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.Source, "] ", rec.Message, "\n")
+		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.App, "] [", rec.Source, "] ", rec.Message)
 		ct.ResetColor()
-		// fmt.Fprint(out, "\n")
+		fmt.Fprint(out, "\n")
 	}
 }
 
