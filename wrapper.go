@@ -19,7 +19,7 @@ func init() {
 
 // Wrapper for (*Logger).LoadConfiguration
 func LoadConfiguration(filename string) {
-	Global.LoadConfiguration(filename)
+	Global.LoadConfig(filename)
 }
 
 // Wrapper for (*Logger).AddFilter

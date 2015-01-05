@@ -16,37 +16,41 @@ var stdout io.Writer = os.Stdout
 type ConsoleLogWriter chan *LogRecord
 
 // This creates a new ConsoleLogWriter
-func NewConsoleLogWriter() ConsoleLogWriter {
+func NewConsoleLogWriter(color bool) ConsoleLogWriter {
 	records := make(ConsoleLogWriter, LogBufferLength)
-	go records.run(stdout)
+	go records.run(stdout, color)
 	return records
 }
 
-func (w ConsoleLogWriter) run(out io.Writer) {
+func (w ConsoleLogWriter) run(out io.Writer, color bool) {
 	var timestr string
 	var timestrAt int64
 
 	for rec := range w {
-		switch rec.Level {
-			case CRITICAL:
-				ct.ChangeColor(ct.Red, true, ct.White, false)
-			case ERROR:
-				ct.ChangeColor(ct.Red, false, 0, false)
-			case WARNING:
-				ct.ChangeColor(ct.Yellow, false, 0, false)
-			case INFO:
-				ct.ChangeColor(ct.Green, false, 0, false)
-			case DEBUG:
-				ct.ChangeColor(ct.Cyan, false, 0, false)
-			case TRACE:
-				ct.ChangeColor(ct.Blue, false, 0, false)
-			default:
+		if color {
+			switch rec.Level {
+				case CRITICAL:
+					ct.ChangeColor(ct.Red, true, ct.White, false)
+				case ERROR:
+					ct.ChangeColor(ct.Red, false, 0, false)
+				case WARNING:
+					ct.ChangeColor(ct.Yellow, false, 0, false)
+				case INFO:
+					ct.ChangeColor(ct.Green, false, 0, false)
+				case DEBUG:
+					ct.ChangeColor(ct.Cyan, false, 0, false)
+				case TRACE:
+					ct.ChangeColor(ct.Blue, false, 0, false)
+				default:
+			}
 		}
 		if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
 			timestr, timestrAt = rec.Created.Format("15:04:05 MST 2006/01/02"), at
 		}
 		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.App, "] [", rec.Source, "] ", rec.Message)
-		ct.ResetColor()
+		if color {
+			ct.ResetColor()
+		}
 		fmt.Fprint(out, "\n")
 	}
 }

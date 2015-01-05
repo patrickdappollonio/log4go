@@ -155,9 +155,10 @@ func NewLogger() Logger {
 func NewConsoleLogger(lvl Level) Logger {
 	os.Stderr.WriteString("warning: use of deprecated NewConsoleLogger\n")
 	file, _ := exec.LookPath(os.Args[0])
-    appString = filepath.Base(file) 
+    appString = filepath.Base(file)
+    color := true
 	return Logger{
-		"stdout": &Filter{lvl, NewConsoleLogWriter()},
+		"stdout": &Filter{lvl, NewConsoleLogWriter(color)},
 	}
 }
 
@@ -166,8 +167,9 @@ func NewConsoleLogger(lvl Level) Logger {
 func NewDefaultLogger(lvl Level) Logger {
 	file, _ := exec.LookPath(os.Args[0])
     appString = filepath.Base(file) 
+    color := true
 	return Logger{
-		"stdout": &Filter{lvl, NewConsoleLogWriter()},
+		"stdout": &Filter{lvl, NewConsoleLogWriter(color)},
 	}
 }
 
@@ -211,7 +213,7 @@ func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
 	pc, _, lineno, ok := runtime.Caller(2)
 	src := ""
 	if ok {
-		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
+		src = fmt.Sprintf("%s:%d", filepath.Base(runtime.FuncForPC(pc).Name()), lineno)
 	}
 
 	msg := format
@@ -256,7 +258,7 @@ func (log Logger) intLogc(lvl Level, closure func() string) {
 	pc, _, lineno, ok := runtime.Caller(2)
 	src := ""
 	if ok {
-		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
+		src = fmt.Sprintf("%s:%d", filepath.Base(runtime.FuncForPC(pc).Name()), lineno)
 	}
 
 	// Make the log record

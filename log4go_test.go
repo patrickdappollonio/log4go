@@ -98,7 +98,8 @@ func TestConsoleLogWriter(t *testing.T) {
 	console := make(ConsoleLogWriter)
 
 	r, w := io.Pipe()
-	go console.run(w)
+	color := true
+	go console.run(w, color)
 	defer console.Close()
 
 	buf := make([]byte, 1024)
@@ -179,7 +180,8 @@ func TestLogger(t *testing.T) {
 
 	//func (l *Logger) AddFilter(name string, level int, writer LogWriter) {}
 	l := make(Logger)
-	l.AddFilter("stdout", DEBUG, NewConsoleLogWriter())
+	color := true
+	l.AddFilter("stdout", DEBUG, NewConsoleLogWriter(color))
 	if lw, exist := l["stdout"]; lw == nil || exist != true {
 		t.Fatalf("AddFilter produced invalid logger (DNE or nil)")
 	}
@@ -362,7 +364,7 @@ func TestXMLConfig(t *testing.T) {
 	fd.Close()
 
 	log := make(Logger)
-	log.LoadConfiguration(configfile)
+	log.LoadConfig(configfile)
 	defer os.Remove("trace.xml")
 	defer os.Remove("test.log")
 	defer log.Close()
