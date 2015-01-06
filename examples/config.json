@@ -30,7 +30,7 @@
         },
         {
           "name": "endpoint",
-          "value": "localhost:9500"
+          "value": "localhost:12124"
         }
       ]
     }

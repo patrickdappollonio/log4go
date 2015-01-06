@@ -7,61 +7,72 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 )
 
 // This log writer sends output to a socket
-type SocketLogWriter chan *LogRecord
+type SocketLogWriter struct {
+	rec chan *LogRecord
+	sock net.Conn
+}
 
 // This is the SocketLogWriter's output method
 func (w SocketLogWriter) LogWrite(rec *LogRecord) {
-	w <- rec
+	w.rec <- rec
 }
 
 func (w SocketLogWriter) Close() {
-	close(w)
+	close(w.rec)
+	for i := 10; i > 0 && len(w.rec) > 0; i-- {
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
-func NewSocketLogWriter(proto, hostport string) SocketLogWriter {
-	sock, err := net.Dial(proto, hostport)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "NewSocketLogWriter(%v): %s\n", hostport, err)
-		return nil
+func NewSocketLogWriter(proto, hostport string) *SocketLogWriter {
+	w := &SocketLogWriter{
+		rec:      make(chan *LogRecord, LogBufferLength),
+		sock:     nil,
 	}
 
-	w := SocketLogWriter(make(chan *LogRecord, LogBufferLength))
+	go w.run(proto, hostport)
+	return w
+}
 
-	go func() {
-		defer func() {
-			if sock != nil {
-				sock.Close()
-			}
-		}()
+func (w SocketLogWriter) run(proto, hostport string) {
+	var err error
+	w.sock, err = net.Dial(proto, hostport)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewSocketLogWriter(%v): %s\n", hostport, err)
+	}
 
-		for rec := range w {
-			// Marshall into JSON
-			js, err := json.Marshal(rec)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "SocketLogWriter(%q): %s\n", hostport, err)
-				return
-			}
-
-			_, err = sock.Write(js)
-			if err == nil {
-				continue
-			}
-			
-			fmt.Fprintf(os.Stderr, "SocketLogWriter(%q): %s\n", hostport, err)
-			if proto == "tcp" {
-				return
-			}
-			
-			// proto == "udp", retry
-			sock, err = net.Dial(proto, hostport)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "SocketLogWriter(%q): %s\n", hostport, err)
-			}
+	defer func() {
+		if w.sock != nil {
+			w.sock.Close()
 		}
 	}()
 
-	return w
+	for rec := range w.rec {
+		// Marshall into JSON
+		js, err := json.Marshal(rec)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "SocketLogWriter(%q): %s\n", hostport, err)
+			return
+		}
+
+		_, err = w.sock.Write(js)
+		if err == nil {
+			continue
+		}
+		
+		fmt.Fprintf(os.Stderr, "SocketLogWriter(%q): %s\n", hostport, err)
+		if proto == "tcp" {
+			return
+		}
+		
+		// proto == "udp", retry
+		w.sock, err = net.Dial(proto, hostport)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "SocketLogWriter(%q): %s\n", hostport, err)
+		}
+	}
 }

@@ -156,9 +156,8 @@ func NewConsoleLogger(lvl Level) Logger {
 	os.Stderr.WriteString("warning: use of deprecated NewConsoleLogger\n")
 	file, _ := exec.LookPath(os.Args[0])
     appString = filepath.Base(file)
-    color := true
 	return Logger{
-		"stdout": &Filter{lvl, NewConsoleLogWriter(color)},
+		"stdout": &Filter{lvl, NewConsoleLogWriter()},
 	}
 }
 
@@ -167,9 +166,8 @@ func NewConsoleLogger(lvl Level) Logger {
 func NewDefaultLogger(lvl Level) Logger {
 	file, _ := exec.LookPath(os.Args[0])
     appString = filepath.Base(file) 
-    color := true
 	return Logger{
-		"stdout": &Filter{lvl, NewConsoleLogWriter(color)},
+		"stdout": &Filter{lvl, NewConsoleLogWriter()},
 	}
 }
 

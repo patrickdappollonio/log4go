@@ -1,4 +1,8 @@
-2015-01-06 support jscon config
+2015-01-06
+
+* Support json config
+
+* Fixed Bug: lost console and file record
 
 * Add `DefaultCallerDepth`
 

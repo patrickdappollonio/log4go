@@ -6,28 +6,35 @@ import (
 	"fmt"
 	"io"
 	"os"
-	//"time"
+	"time"
 	"github.com/daviddengcn/go-colortext"
 )
 
-var stdout io.Writer = os.Stdout
-
 // This is the standard writer that prints to standard output.
-type ConsoleLogWriter chan *LogRecord
-
-// This creates a new ConsoleLogWriter
-func NewConsoleLogWriter(color bool) ConsoleLogWriter {
-	records := make(ConsoleLogWriter, LogBufferLength)
-	go records.run(stdout, color)
-	return records
+type ConsoleLogWriter struct {
+	rec chan *LogRecord
+	
+	out io.Writer
+	color bool
 }
 
-func (w ConsoleLogWriter) run(out io.Writer, color bool) {
+// This creates a new ConsoleLogWriter
+func NewConsoleLogWriter() *ConsoleLogWriter {
+	w := &ConsoleLogWriter{
+		rec:      make(chan *LogRecord, LogBufferLength),
+		out:      os.Stdout,
+		color:    true,
+	}
+	go w.run()
+	return w
+}
+
+func (w ConsoleLogWriter) run() {
 	var timestr string
 	var timestrAt int64
 
-	for rec := range w {
-		if color {
+	for rec := range w.rec {
+		if w.color {
 			switch rec.Level {
 				case CRITICAL:
 					ct.ChangeColor(ct.Red, true, ct.White, false)
@@ -47,24 +54,31 @@ func (w ConsoleLogWriter) run(out io.Writer, color bool) {
 		if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
 			timestr, timestrAt = rec.Created.Format("15:04:05 MST 2006/01/02"), at
 		}
-		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.App, "] [", rec.Source, "] ", rec.Message)
-		if color {
+		fmt.Fprint(w.out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.App, "] [", rec.Source, "] ", rec.Message)
+		if w.color {
 			ct.ResetColor()
 		}
-		fmt.Fprint(out, "\n")
+		fmt.Fprint(w.out, "\n")
 	}
 }
 
 // This is the ConsoleLogWriter's output method.  This will block if the output
 // buffer is full.
 func (w ConsoleLogWriter) LogWrite(rec *LogRecord) {
-	w <- rec
+	w.rec <- rec
 }
 
 // Close stops the logger from sending messages to standard output.  Attempts to
 // send log messages to this logger after a Close have undefined behavior.
 func (w ConsoleLogWriter) Close() {
-	fmt.Fprintf(os.Stderr, "ConsoleLogWriter: Close, msg %d\n", len(w))
-	close(w)
-	//time.Sleep(100 * time.Millisecond)  // Ugly code, but more faithfully than runtime.Gosched()
+	close(w.rec)
+	for i := 10; i > 0 && len(w.rec) > 0; i-- {
+		time.Sleep(100 * time.Millisecond)
+	}
 }
+
+func (w *ConsoleLogWriter) SetColor(color bool) *ConsoleLogWriter {
+	w.color = color
+	return w
+}
+

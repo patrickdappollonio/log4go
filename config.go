@@ -175,7 +175,7 @@ func (log Logger) ConfigToLogWriter(filename string, cfg *Config) {
 	}
 }
 
-func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (ConsoleLogWriter, bool) {
+func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (*ConsoleLogWriter, bool) {
 	color := true
 	// Parse properties
 	for _, prop := range props {
@@ -192,7 +192,9 @@ func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (
 		return nil, true
 	}
 
-	return NewConsoleLogWriter(color), true
+	clw := NewConsoleLogWriter()
+	clw.SetColor(color)
+	return clw, true
 }
 
 // Parse a number with K/M/G suffixes based on thousands (1000) or 2^10 (1024)
@@ -305,7 +307,7 @@ func propToXMLLogWriter(filename string, props []kvProperty, enabled bool) (*Fil
 	return xlw, true
 }
 
-func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (SocketLogWriter, bool) {
+func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (*SocketLogWriter, bool) {
 	endpoint := ""
 	protocol := "udp"
 

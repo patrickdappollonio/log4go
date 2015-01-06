@@ -45,8 +45,11 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 }
 
 func (w *FileLogWriter) Close() {
-	fmt.Fprintf(os.Stderr, "FileLogWriter: Close, msg %d\n", len(w.rec))
 	close(w.rec)
+	for i := 10; i > 0 && len(w.rec) > 0; i-- {
+		time.Sleep(100 * time.Millisecond)
+	}
+	w.file.Sync()
 }
 
 // NewFileLogWriter creates a new LogWriter which writes to the given file and
@@ -67,58 +70,58 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		rotate:   rotate,
 	}
 
+	go w.run()
+	return w
+}
+
+func (w FileLogWriter) run() {
 	// open the file for the first time
 	if err := w.intRotate(); err != nil {
 		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-		return nil
+		return
 	}
 
-	go func() {
-		defer func() {
-			fmt.Fprintf(os.Stderr, "FileLogWriter: End\n")
-			if w.file != nil {
-				fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
-			}
-		}()
+	defer func() {
+		if w.file != nil {
+			fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
+			w.file.Close()
+		}
+	}()
 
-		for {
-			select {
-			case <-w.rot:
+	for {
+		select {
+		case <-w.rot:
+			if err := w.intRotate(); err != nil {
+				fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+				return
+			}
+		case rec, ok := <-w.rec:
+			if !ok {
+				return
+			}
+			now := time.Now()
+			if (w.maxlines > 0 && w.maxlines_curlines >= w.maxlines) ||
+				(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) ||
+				(w.daily && now.Day() != w.daily_opendate) {
 				if err := w.intRotate(); err != nil {
 					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 					return
 				}
-			case rec, ok := <-w.rec:
-				if !ok {
-					return
-				}
-				now := time.Now()
-				if (w.maxlines > 0 && w.maxlines_curlines >= w.maxlines) ||
-					(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) ||
-					(w.daily && now.Day() != w.daily_opendate) {
-					if err := w.intRotate(); err != nil {
-						fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-						return
-					}
-				}
-
-				// Perform the write
-				n, err := fmt.Fprint(w.file, FormatLogRecord(w.format, rec))
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-					return
-				}
-
-				// Update the counts
-				w.maxlines_curlines++
-				w.maxsize_cursize += n
 			}
+
+			// Perform the write
+			n, err := fmt.Fprint(w.file, FormatLogRecord(w.format, rec))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+				return
+			}
+
+			// Update the counts
+			w.maxlines_curlines++
+			w.maxsize_cursize += n
 		}
-	}()
-
-	return w
+	}
 }
-
 // Request that the logs rotate
 func (w *FileLogWriter) Rotate() {
 	w.rot <- true
