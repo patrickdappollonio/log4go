@@ -22,6 +22,10 @@ func LoadConfiguration(filename string) {
 	Global.LoadConfig(filename)
 }
 
+func LoadConfigBuf(filename string, buf []byte) {
+	Global.LoadConfigBuf(filename, buf)
+}
+
 // Wrapper for (*Logger).AddFilter
 func AddFilter(name string, lvl Level, writer LogWriter) {
 	Global.AddFilter(name, lvl, writer)
