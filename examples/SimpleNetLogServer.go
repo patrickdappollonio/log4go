@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	log := l4g.NewLogger()
-	log.AddFilter("stdout", l4g.DEBUG, l4g.NewConsoleLogWriter())
+	log.AddFilter("stdout", l4g.DEBUG, l4g.NewConsoleLogWriter(true))
 
 	// Bind to the port
 	bind, err := net.ResolveUDPAddr("udp4", "0.0.0.0:" + *port)

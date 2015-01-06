@@ -32,7 +32,7 @@ func NewSocketLogWriter(proto, hostport string) SocketLogWriter {
 
 	go func() {
 		defer func() {
-			if sock != nil && proto == "tcp" {
+			if sock != nil {
 				sock.Close()
 			}
 		}()

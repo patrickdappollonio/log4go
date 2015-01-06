@@ -1,0 +1,38 @@
+{
+  "filters": [
+    {
+      "enabled": "true",
+      "tag": "stderr",
+      "type": "console",
+      "level": "DEBUG"
+    },
+    {
+      "enabled": "true",
+      "tag": "file",
+      "type": "file",
+      "level": "FINEST",
+      "properties": [
+        {
+          "name": "filename",
+          "value": "test.log"
+        }
+      ]
+    },
+    {
+      "enabled": "true",
+      "tag": "syslog",
+      "type": "socket",
+      "level": "FINEST",
+      "properties": [
+        {
+          "name": "protocol",
+          "value": "udp"
+        },
+        {
+          "name": "endpoint",
+          "value": "localhost:9500"
+        }
+      ]
+    }
+  ]
+}

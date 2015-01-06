@@ -1,4 +1,5 @@
-2015-01-06
+2015-01-06 support jscon config
 
-* console print with color
+2015-01-05 support console color print
 
+* NewConsoleLogWriter() change to NewConsoleLogWriter(color bool)

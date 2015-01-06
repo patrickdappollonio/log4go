@@ -47,6 +47,7 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 func (w *FileLogWriter) Close() {
 	close(w.rec)
 	w.file.Sync()
+	w.file.Close()
 }
 
 // NewFileLogWriter creates a new LogWriter which writes to the given file and
