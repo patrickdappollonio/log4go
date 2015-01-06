@@ -45,9 +45,8 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 }
 
 func (w *FileLogWriter) Close() {
+	fmt.Fprintf(os.Stderr, "FileLogWriter: Close, msg %d\n", len(w.rec))
 	close(w.rec)
-	w.file.Sync()
-	w.file.Close()
 }
 
 // NewFileLogWriter creates a new LogWriter which writes to the given file and
@@ -76,9 +75,9 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 
 	go func() {
 		defer func() {
+			fmt.Fprintf(os.Stderr, "FileLogWriter: End\n")
 			if w.file != nil {
 				fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
-				w.file.Close()
 			}
 		}()
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
+	//"time"
 	"github.com/daviddengcn/go-colortext"
 )
 
@@ -64,6 +64,7 @@ func (w ConsoleLogWriter) LogWrite(rec *LogRecord) {
 // Close stops the logger from sending messages to standard output.  Attempts to
 // send log messages to this logger after a Close have undefined behavior.
 func (w ConsoleLogWriter) Close() {
+	fmt.Fprintf(os.Stderr, "ConsoleLogWriter: Close, msg %d\n", len(w))
 	close(w)
-	time.Sleep(100 * time.Millisecond)  // Ugly code, but more faithfully than runtime.Gosched()
+	//time.Sleep(100 * time.Millisecond)  // Ugly code, but more faithfully than runtime.Gosched()
 }
