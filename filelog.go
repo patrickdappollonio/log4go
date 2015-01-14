@@ -70,57 +70,56 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		rotate:   rotate,
 	}
 
-	go w.run()
-	return w
-}
-
-func (w FileLogWriter) run() {
 	// open the file for the first time
 	if err := w.intRotate(); err != nil {
 		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-		return
+		return nil
 	}
 
-	defer func() {
-		if w.file != nil {
-			fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
-			w.file.Close()
-		}
-	}()
+	go func() {
+		defer func() {
+			if w.file != nil {
+				fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
+				w.file.Close()
+			}
+		}()
 
-	for {
-		select {
-		case <-w.rot:
-			if err := w.intRotate(); err != nil {
-				fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-				return
-			}
-		case rec, ok := <-w.rec:
-			if !ok {
-				return
-			}
-			now := time.Now()
-			if (w.maxlines > 0 && w.maxlines_curlines >= w.maxlines) ||
-				(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) ||
-				(w.daily && now.Day() != w.daily_opendate) {
+		for {
+			select {
+			case <-w.rot:
 				if err := w.intRotate(); err != nil {
 					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 					return
 				}
-			}
+			case rec, ok := <-w.rec:
+				if !ok {
+					return
+				}
+				now := time.Now()
+				if (w.maxlines > 0 && w.maxlines_curlines >= w.maxlines) ||
+					(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) ||
+					(w.daily && now.Day() != w.daily_opendate) {
+					if err := w.intRotate(); err != nil {
+						fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+						return
+					}
+				}
 
-			// Perform the write
-			n, err := fmt.Fprint(w.file, FormatLogRecord(w.format, rec))
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-				return
-			}
+				// Perform the write
+				n, err := fmt.Fprint(w.file, FormatLogRecord(w.format, rec))
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+					return
+				}
 
-			// Update the counts
-			w.maxlines_curlines++
-			w.maxsize_cursize += n
+				// Update the counts
+				w.maxlines_curlines++
+				w.maxsize_cursize += n
+			}
 		}
-	}
+	}()
+
+	return w
 }
 
 // Request that the logs rotate

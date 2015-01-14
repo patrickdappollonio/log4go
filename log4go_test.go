@@ -85,12 +85,11 @@ var logRecordWriteTests = []struct {
 		Test: "Normal message",
 		Record: &LogRecord{
 			Level:   CRITICAL,
-			App:     "app",
 			Source:  "source",
 			Message: "message",
 			Created: now,
 		},
-		Console: "[23:31:30 UTC 2009/02/13] [CRIT] [app] [source] message",
+		Console: "[23:31:30 UTC 2009/02/13] [CRIT] [source] message",
 	},
 }
 
@@ -99,7 +98,8 @@ func TestConsoleLogWriter(t *testing.T) {
 
 	r, w := io.Pipe()
 	color := true
-	go console.run(w, color)
+	timeformat := "15:04:05 MST 2006/01/02"
+	go console.run(w, color, timeformat)
 	defer console.Close()
 
 	buf := make([]byte, 1024)
@@ -180,8 +180,7 @@ func TestLogger(t *testing.T) {
 
 	//func (l *Logger) AddFilter(name string, level int, writer LogWriter) {}
 	l := make(Logger)
-	color := true
-	l.AddFilter("stdout", DEBUG, NewConsoleLogWriter(color))
+	l.AddFilter("stdout", DEBUG, NewConsoleLogWriter())
 	if lw, exist := l["stdout"]; lw == nil || exist != true {
 		t.Fatalf("AddFilter produced invalid logger (DNE or nil)")
 	}
@@ -320,6 +319,8 @@ func TestXMLConfig(t *testing.T) {
 	fmt.Fprintln(fd, "    <type>console</type>")
 	fmt.Fprintln(fd, "    <!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->")
 	fmt.Fprintln(fd, "    <level>DEBUG</level>")
+	fmt.Fprintln(fd, "        <property name=\"color\">true</property>")
+	fmt.Fprintln(fd, "        <property name=\"timeformat\">15:04:05</property>")
 	fmt.Fprintln(fd, "  </filter>")
 	fmt.Fprintln(fd, "  <filter enabled=\"true\">")
 	fmt.Fprintln(fd, "    <tag>file</tag>")
