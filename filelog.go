@@ -122,6 +122,7 @@ func (w FileLogWriter) run() {
 		}
 	}
 }
+
 // Request that the logs rotate
 func (w *FileLogWriter) Rotate() {
 	w.rot <- true

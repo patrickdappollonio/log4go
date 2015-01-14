@@ -5,7 +5,17 @@
 		  "enabled": "true",
 		  "tag": "stderr",
 		  "type": "console",
-		  "level": "DEBUG"
+		  "level": "DEBUG",
+		  "properties": [
+			{
+			  "name": "color",
+			  "value": "false"
+			},
+			{
+			  "name": "timeformat",
+			  "value": "15:04:05 MST 2006/01/02"
+			}
+		  ]
 		},
 		{
 		  "enabled": "true",

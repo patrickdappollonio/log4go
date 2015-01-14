@@ -16,7 +16,7 @@ func main() {
 	l4g.Debug("Oh no!  %d + %d = %d!", 2, 2, 2+2)
 	l4g.Info("About that time, eh chaps?")
 
-	l4g.Close()
+	// l4g.Close()
 
 	filename := "config.json"
 	fd, err := os.Open(filename)

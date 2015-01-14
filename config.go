@@ -175,13 +175,16 @@ func (log Logger) ConfigToLogWriter(filename string, cfg *Config) {
 	}
 }
 
-func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (*ConsoleLogWriter, bool) {
+func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (ConsoleLogWriter, bool) {
 	color := true
+	timeformat := "15:04:05"
 	// Parse properties
 	for _, prop := range props {
 		switch prop.Name {
 		case "color":
 			color = strings.Trim(prop.Value, " \r\n") != "false"
+		case "timeformat":
+			timeformat = strings.Trim(prop.Value, " \r\n")
 		default:
 			fmt.Fprintf(os.Stderr, "LoadConfig: Warning: Unknown property \"%s\" for console filter in %s\n", prop.Name, filename)
 		}
@@ -192,8 +195,7 @@ func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (
 		return nil, true
 	}
 
-	clw := NewConsoleLogWriter()
-	clw.SetColor(color)
+	clw := NewColorConsoleLogWriter(color, timeformat)
 	return clw, true
 }
 
@@ -307,7 +309,7 @@ func propToXMLLogWriter(filename string, props []kvProperty, enabled bool) (*Fil
 	return xlw, true
 }
 
-func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (*SocketLogWriter, bool) {
+func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (SocketLogWriter, bool) {
 	endpoint := ""
 	protocol := "udp"
 

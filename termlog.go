@@ -10,31 +10,29 @@ import (
 	"github.com/daviddengcn/go-colortext"
 )
 
+var stdout io.Writer = os.Stdout
+const DefaultTimeFormat string = "15:04:05 MST 2006/01/02"
+
 // This is the standard writer that prints to standard output.
-type ConsoleLogWriter struct {
-	rec chan *LogRecord
-	
-	out io.Writer
-	color bool
+type ConsoleLogWriter chan *LogRecord
+
+func NewConsoleLogWriter() ConsoleLogWriter {
+	return NewColorConsoleLogWriter(true, DefaultTimeFormat)
 }
 
 // This creates a new ConsoleLogWriter
-func NewConsoleLogWriter() *ConsoleLogWriter {
-	w := &ConsoleLogWriter{
-		rec:      make(chan *LogRecord, LogBufferLength),
-		out:      os.Stdout,
-		color:    true,
-	}
-	go w.run()
-	return w
+func NewColorConsoleLogWriter(color bool, timeformat string) ConsoleLogWriter {
+	records := make(ConsoleLogWriter, LogBufferLength)
+	go records.run(stdout, color, timeformat)
+	return records
 }
 
-func (w ConsoleLogWriter) run() {
+func (w ConsoleLogWriter) run(out io.Writer, color bool, timeformat string) {
 	var timestr string
 	var timestrAt int64
 
-	for rec := range w.rec {
-		if w.color {
+	for rec := range w {
+		if color {
 			switch rec.Level {
 				case CRITICAL:
 					ct.ChangeColor(ct.Red, true, ct.White, false)
@@ -52,33 +50,28 @@ func (w ConsoleLogWriter) run() {
 			}
 		}
 		if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
-			timestr, timestrAt = rec.Created.Format("15:04:05 MST 2006/01/02"), at
+			timestr, timestrAt = rec.Created.Format(timeformat), at
 		}
-		fmt.Fprint(w.out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.App, "] [", rec.Source, "] ", rec.Message)
-		if w.color {
+		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.Source, "] ", rec.Message)
+		if color {
 			ct.ResetColor()
 		}
-		fmt.Fprint(w.out, "\n")
+		fmt.Fprint(out, "\n")
 	}
 }
 
 // This is the ConsoleLogWriter's output method.  This will block if the output
 // buffer is full.
 func (w ConsoleLogWriter) LogWrite(rec *LogRecord) {
-	w.rec <- rec
+	w <- rec
 }
 
 // Close stops the logger from sending messages to standard output.  Attempts to
 // send log messages to this logger after a Close have undefined behavior.
 func (w ConsoleLogWriter) Close() {
-	close(w.rec)
-	for i := 10; i > 0 && len(w.rec) > 0; i-- {
+	close(w)
+	for i := 10; i > 0 && len(w) > 0; i-- {
 		time.Sleep(100 * time.Millisecond)
 	}
-}
-
-func (w *ConsoleLogWriter) SetColor(color bool) *ConsoleLogWriter {
-	w.color = color
-	return w
 }
 
