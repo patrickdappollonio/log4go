@@ -43,9 +43,9 @@ func (w ConsoleLogWriter) run(out io.Writer, color bool, timeformat string) {
 				case INFO:
 					ct.ChangeColor(ct.Green, false, 0, false)
 				case DEBUG:
-					ct.ChangeColor(ct.Cyan, false, 0, false)
+					ct.ChangeColor(ct.Magenta, false, 0, false)
 				case TRACE:
-					ct.ChangeColor(ct.Blue, false, 0, false)
+					ct.ChangeColor(ct.Cyan, false, 0, false)
 				default:
 			}
 		}
