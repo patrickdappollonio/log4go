@@ -94,12 +94,10 @@ var logRecordWriteTests = []struct {
 }
 
 func TestConsoleLogWriter(t *testing.T) {
-	console := make(ConsoleLogWriter)
-
 	r, w := io.Pipe()
-	color := true
-	timeformat := "15:04:05 MST 2006/01/02"
-	go console.run(w, color, timeformat)
+
+	console := NewOutConsoleLogWriter(w)
+
 	defer console.Close()
 
 	buf := make([]byte, 1024)
@@ -320,6 +318,7 @@ func TestXMLConfig(t *testing.T) {
 	fmt.Fprintln(fd, "    <!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->")
 	fmt.Fprintln(fd, "    <level>DEBUG</level>")
 	fmt.Fprintln(fd, "        <property name=\"color\">true</property>")
+	fmt.Fprintln(fd, "        <property name=\"longformat\">true</property>")
 	fmt.Fprintln(fd, "        <property name=\"timeformat\">15:04:05</property>")
 	fmt.Fprintln(fd, "  </filter>")
 	fmt.Fprintln(fd, "  <filter enabled=\"true\">")
@@ -387,7 +386,7 @@ func TestXMLConfig(t *testing.T) {
 	}
 
 	// Make sure they're the right type
-	if _, ok := log["stdout"].LogWriter.(ConsoleLogWriter); !ok {
+	if _, ok := log["stdout"].LogWriter.(*ConsoleLogWriter); !ok {
 		t.Fatalf("XMLConfig: Expected stdout to be ConsoleLogWriter, found %T", log["stdout"].LogWriter)
 	}
 	if _, ok := log["file"].LogWriter.(*FileLogWriter); !ok {

@@ -14,25 +14,63 @@ var stdout io.Writer = os.Stdout
 const DefaultTimeFormat string = "15:04:05 MST 2006/01/02"
 
 // This is the standard writer that prints to standard output.
-type ConsoleLogWriter chan *LogRecord
-
-func NewConsoleLogWriter() ConsoleLogWriter {
-	return NewColorConsoleLogWriter(true, DefaultTimeFormat)
+type ConsoleLogWriter struct {
+	rec chan *LogRecord
+	color bool
+	longformat bool
+	timeformat string
 }
 
 // This creates a new ConsoleLogWriter
-func NewColorConsoleLogWriter(color bool, timeformat string) ConsoleLogWriter {
-	records := make(ConsoleLogWriter, LogBufferLength)
-	go records.run(stdout, color, timeformat)
-	return records
+func NewConsoleLogWriter() *ConsoleLogWriter {
+	w := &ConsoleLogWriter{
+		rec:  	make(chan *LogRecord, LogBufferLength),
+		color:	true,
+		longformat: true,
+		timeformat:	DefaultTimeFormat,
+	}
+
+	go w.run(stdout)
+	return w
 }
 
-func (w ConsoleLogWriter) run(out io.Writer, color bool, timeformat string) {
+// for test only
+func NewOutConsoleLogWriter(out io.Writer) *ConsoleLogWriter {
+	w := &ConsoleLogWriter{
+		rec:  	make(chan *LogRecord, LogBufferLength),
+		color:	true,
+		longformat: true,
+		timeformat:	DefaultTimeFormat,
+	}
+
+	go w.run(out)
+	return w
+}
+
+// Must be called before the first log message is written.
+func (w *ConsoleLogWriter) SetColor(color bool) *ConsoleLogWriter {
+	w.color = color
+	return w
+}
+
+// Must be called before the first log message is written.
+func (w *ConsoleLogWriter) SetLongFormat(longformat bool) *ConsoleLogWriter {
+	w.longformat = longformat
+	return w
+}
+
+// Must be called before the first log message is written.
+func (w *ConsoleLogWriter) SetTimeFormat(timeformat string) *ConsoleLogWriter {
+	w.timeformat = timeformat
+	return w
+}
+
+func (w *ConsoleLogWriter) run(out io.Writer) {
 	var timestr string
 	var timestrAt int64
 
-	for rec := range w {
-		if color {
+	for rec := range w.rec {
+		if w.color {
 			switch rec.Level {
 				case CRITICAL:
 					ct.ChangeColor(ct.Red, true, ct.White, false)
@@ -49,11 +87,15 @@ func (w ConsoleLogWriter) run(out io.Writer, color bool, timeformat string) {
 				default:
 			}
 		}
-		if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
-			timestr, timestrAt = rec.Created.Format(timeformat), at
+		if !w.longformat {
+			fmt.Fprint(out, rec.Message)
+		} else {
+			if at := rec.Created.UnixNano() / 1e9; at != timestrAt {
+				timestr, timestrAt = rec.Created.Format(w.timeformat), at
+			}
+			fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.Source, "] ", rec.Message)
 		}
-		fmt.Fprint(out, "[", timestr, "] [", levelStrings[rec.Level], "] [", rec.Source, "] ", rec.Message)
-		if color {
+		if w.color {
 			ct.ResetColor()
 		}
 		fmt.Fprint(out, "\n")
@@ -63,14 +105,14 @@ func (w ConsoleLogWriter) run(out io.Writer, color bool, timeformat string) {
 // This is the ConsoleLogWriter's output method.  This will block if the output
 // buffer is full.
 func (w ConsoleLogWriter) LogWrite(rec *LogRecord) {
-	w <- rec
+	w.rec <- rec
 }
 
 // Close stops the logger from sending messages to standard output.  Attempts to
 // send log messages to this logger after a Close have undefined behavior.
 func (w ConsoleLogWriter) Close() {
-	close(w)
-	for i := 10; i > 0 && len(w) > 0; i-- {
+	close(w.rec)
+	for i := 10; i > 0 && len(w.rec) > 0; i-- {
 		time.Sleep(100 * time.Millisecond)
 	}
 }

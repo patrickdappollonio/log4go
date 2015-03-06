@@ -12,6 +12,10 @@
 			  "value": "false"
 			},
 			{
+			  "name": "longformat",
+			  "value": "true"
+			},
+			{
 			  "name": "timeformat",
 			  "value": "15:04:05 MST 2006/01/02"
 			}

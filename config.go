@@ -175,14 +175,17 @@ func (log Logger) ConfigToLogWriter(filename string, cfg *Config) {
 	}
 }
 
-func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (ConsoleLogWriter, bool) {
+func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (*ConsoleLogWriter, bool) {
 	color := true
+	longformat := false
 	timeformat := "15:04:05"
 	// Parse properties
 	for _, prop := range props {
 		switch prop.Name {
 		case "color":
 			color = strings.Trim(prop.Value, " \r\n") != "false"
+		case "longformat":
+			longformat = strings.Trim(prop.Value, " \r\n") != "false"
 		case "timeformat":
 			timeformat = strings.Trim(prop.Value, " \r\n")
 		default:
@@ -195,7 +198,10 @@ func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (
 		return nil, true
 	}
 
-	clw := NewColorConsoleLogWriter(color, timeformat)
+	clw := NewConsoleLogWriter()
+	clw.SetColor(color)
+	clw.SetLongFormat(longformat)
+	clw.SetTimeFormat(timeformat)
 	return clw, true
 }
 

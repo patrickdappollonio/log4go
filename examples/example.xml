@@ -5,6 +5,7 @@
     <!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->
     <level>DEBUG</level>
         <property name="color">true</property>
+        <property name="longformat">true</property>
         <property name="timeformat">15:04:05</property>
   </filter>
   <filter enabled="true">
