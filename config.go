@@ -315,8 +315,9 @@ func propToXMLLogWriter(filename string, props []kvProperty, enabled bool) (*Fil
 	return xlw, true
 }
 
-func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (SocketLogWriter, bool) {
+func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (*SocketLogWriter, bool) {
 	endpoint := ""
+	host := ""
 	protocol := "udp"
 
 	// Parse properties
@@ -324,6 +325,8 @@ func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (S
 		switch prop.Name {
 		case "endpoint":
 			endpoint = strings.Trim(prop.Value, " \r\n")
+		case "host":
+			host = strings.Trim(prop.Value, " \r\n")
 		case "protocol":
 			protocol = strings.Trim(prop.Value, " \r\n")
 		default:
@@ -332,8 +335,8 @@ func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (S
 	}
 
 	// Check properties
-	if len(endpoint) == 0 {
-		fmt.Fprintf(os.Stderr, "LoadConfig: Error: Required property \"%s\" for file filter missing in %s\n", "endpoint", filename)
+	if len(endpoint) == 0 && len(host) == 0 {
+		fmt.Fprintf(os.Stderr, "LoadConfig: Error: Required property \"%s\" or \"%s\" for file filter missing in %s\n", "endpoint", "host", filename)
 		return nil, false
 	}
 
@@ -342,5 +345,10 @@ func propToSocketLogWriter(filename string, props []kvProperty, enabled bool) (S
 		return nil, true
 	}
 
-	return NewSocketLogWriter(protocol, endpoint), true
+	if len(endpoint) > 0 {
+		return NewSocketLogWriter(protocol, endpoint), true
+	}
+
+	return NewHostSocketLogWriter(protocol, endpoint), true
 }
+
