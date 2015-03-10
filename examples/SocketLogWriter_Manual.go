@@ -15,10 +15,10 @@ func main() {
 	log.Info("The time is now: %s", time.Now().Format("15:04:05 MST 2006/01/02"))
 	log.Log(l4g.DEBUG, "myApp", "Send a log message with manual level, source, and message.")
 
-	time.Sleep(5 * time.Second)
-
-	log.Log(l4g.DEBUG, "myApp", "Send a log message with manual level, source, and message.")
-
+	for i := 0; i < 5; i++ {
+		time.Sleep(3 * time.Second)
+		log.Log(l4g.DEBUG, "myApp", "Send a log message with manual level, source, and message.")
+	}
 	// This makes sure the output stream buffer is written
 	log.Close()
 }

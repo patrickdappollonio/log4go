@@ -21,6 +21,21 @@ type ConsoleLogWriter struct {
 	timeformat string
 }
 
+// This is the ConsoleLogWriter's output method.  This will block if the output
+// buffer is full.
+func (w *ConsoleLogWriter) LogWrite(rec *LogRecord) {
+	w.rec <- rec
+}
+
+// Close stops the logger from sending messages to standard output.  Attempts to
+// send log messages to this logger after a Close have undefined behavior.
+func (w *ConsoleLogWriter) Close() {
+	close(w.rec)
+	for i := 10; i > 0 && len(w.rec) > 0; i-- {
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 // This creates a new ConsoleLogWriter
 func NewConsoleLogWriter() *ConsoleLogWriter {
 	w := &ConsoleLogWriter{
@@ -99,21 +114,6 @@ func (w *ConsoleLogWriter) run(out io.Writer) {
 			ct.ResetColor()
 		}
 		fmt.Fprint(out, "\n")
-	}
-}
-
-// This is the ConsoleLogWriter's output method.  This will block if the output
-// buffer is full.
-func (w ConsoleLogWriter) LogWrite(rec *LogRecord) {
-	w.rec <- rec
-}
-
-// Close stops the logger from sending messages to standard output.  Attempts to
-// send log messages to this logger after a Close have undefined behavior.
-func (w ConsoleLogWriter) Close() {
-	close(w.rec)
-	for i := 10; i > 0 && len(w.rec) > 0; i-- {
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
