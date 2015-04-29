@@ -53,6 +53,9 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 }
 
 func (w *FileLogWriter) Close() {
+	if w.closing {
+		return
+	}
 	w.closing = true
 	close(w.rec)
     w.wg.Wait()

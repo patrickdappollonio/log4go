@@ -27,6 +27,9 @@ func (w *SocketLogWriter) LogWrite(rec *LogRecord) {
 }
 
 func (w *SocketLogWriter) Close() {
+	if w.closing {
+		return
+	}
 	w.closing = true
 	close(w.rec)
     w.wg.Wait()

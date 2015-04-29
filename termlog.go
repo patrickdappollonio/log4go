@@ -36,8 +36,11 @@ func (w *ConsoleLogWriter) LogWrite(rec *LogRecord) {
 // Close stops the logger from sending messages to standard output.  Attempts to
 // send log messages to this logger after a Close have undefined behavior.
 func (w *ConsoleLogWriter) Close() {
-	close(w.rec)
+	if w.closing {
+		return
+	}
 	w.closing = true
+	close(w.rec)
     w.wg.Wait()
 }
 
