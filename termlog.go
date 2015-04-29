@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
+	"sync"
 	"github.com/daviddengcn/go-colortext"
 )
 
@@ -16,6 +16,8 @@ const DefaultTimeFormat string = "15:04:05 MST 2006/01/02"
 // This is the standard writer that prints to standard output.
 type ConsoleLogWriter struct {
 	rec chan *LogRecord
+	closing bool
+    wg *sync.WaitGroup
 	color bool
 	longformat bool
 	timeformat string
@@ -24,27 +26,33 @@ type ConsoleLogWriter struct {
 // This is the ConsoleLogWriter's output method.  This will block if the output
 // buffer is full.
 func (w *ConsoleLogWriter) LogWrite(rec *LogRecord) {
+	if w.closing {
+		fmt.Fprintf(os.Stderr, "ConsoleLogWriter: channel has been closed. Message is [%s]\n", rec.Message)
+		return
+	}
 	w.rec <- rec
 }
 
 // Close stops the logger from sending messages to standard output.  Attempts to
 // send log messages to this logger after a Close have undefined behavior.
 func (w *ConsoleLogWriter) Close() {
+	w.closing = true
 	close(w.rec)
-	for i := 10; i > 0 && len(w.rec) > 0; i-- {
-		time.Sleep(100 * time.Millisecond)
-	}
+    w.wg.Wait()
 }
 
 // This creates a new ConsoleLogWriter
 func NewConsoleLogWriter() *ConsoleLogWriter {
 	w := &ConsoleLogWriter{
 		rec:  	make(chan *LogRecord, LogBufferLength),
+		closing: 	false,
+        wg: 	&sync.WaitGroup{},	
 		color:	true,
 		longformat: true,
 		timeformat:	DefaultTimeFormat,
 	}
 
+    w.wg.Add(1)
 	go w.run(stdout)
 	return w
 }
@@ -81,10 +89,16 @@ func (w *ConsoleLogWriter) SetTimeFormat(timeformat string) *ConsoleLogWriter {
 }
 
 func (w *ConsoleLogWriter) run(out io.Writer) {
+    defer w.wg.Done()
+
 	var timestr string
 	var timestrAt int64
 
-	for rec := range w.rec {
+	for {
+		rec, ok := <-w.rec
+		if !ok {
+			return
+		}
 		if w.color {
 			switch rec.Level {
 				case CRITICAL:

@@ -7,29 +7,36 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"time"
+	"sync"
 )
 
 // This log writer sends output to a socket
 type SocketLogWriter struct {
 	rec chan *LogRecord
+	closing bool
+    wg *sync.WaitGroup
 }
 
 // This is the SocketLogWriter's output method
 func (w *SocketLogWriter) LogWrite(rec *LogRecord) {
+	if w.closing {
+		fmt.Fprintf(os.Stderr, "SocketLogWriter: channel has been closed. Message is [%s]\n", rec.Message)
+		return
+	}
 	w.rec <- rec
 }
 
 func (w *SocketLogWriter) Close() {
+	w.closing = true
 	close(w.rec)
-	for i := 10; i > 0 && len(w.rec) > 0; i-- {
-		time.Sleep(100 * time.Millisecond)
-	}
+    w.wg.Wait()
 }
 
 func NewSocketLogWriter(proto, hostport string) *SocketLogWriter {
 	w := &SocketLogWriter{
 		rec:  	make(chan *LogRecord, LogBufferLength),
+		closing: 	false,
+        wg: 	&sync.WaitGroup{},	
 	}
 
 	go w.run(proto, hostport)
@@ -41,13 +48,20 @@ func (w *SocketLogWriter) run(proto, hostport string) {
 
 	sock = nil
 
+    w.wg.Add(1)
 	defer func() {
 		if sock != nil && proto == "tcp" {
 			sock.Close()
 		}
+	    w.wg.Done()
 	}()
 
-	for rec := range w.rec {
+	for {
+		rec, ok := <-w.rec
+		if !ok {
+			return
+		}
+		
 		// Marshall into JSON
 		js, err := json.Marshal(rec)
 		if err != nil {
