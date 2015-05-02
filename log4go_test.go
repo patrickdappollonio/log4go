@@ -313,7 +313,7 @@ func TestCountMallocs(t *testing.T) {
 
 func TestXMLConfig(t *testing.T) {
 	const (
-		configfile = "example.xml"
+		configfile = "_example.xml"
 	)
 
 	fd, err := os.Create(configfile)
