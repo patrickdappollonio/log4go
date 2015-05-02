@@ -265,6 +265,9 @@ func propToFileLogWriter(filename string, props []kvProperty, enabled bool) (*Fi
 	}
 
 	flw := NewFileLogWriter(file, rotate)
+	if flw == nil {
+		return nil, false
+	}
 	flw.SetFormat(format)
 	flw.SetRotateLines(maxlines)
 	flw.SetRotateSize(maxsize)
