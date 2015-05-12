@@ -1,3 +1,7 @@
+2015-05-12
+
+* Add console format. Merge from <https://github.com/alecthomas/log4go>
+
 2015-04-30
 
 * Add closing and wait group. No ugly sleep code.

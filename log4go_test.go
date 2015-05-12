@@ -6,12 +6,13 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	//"io"
+	"io"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
 	"time"
+	"sync"
 )
 
 const testLogFile = "_logtest.log"
@@ -94,12 +95,19 @@ var logRecordWriteTests = []struct {
 }
 
 func TestConsoleLogWriter(t *testing.T) {
-	// Fixme:  io pipe is crash by wg.Wait() when closing
-	/*
+	console := new(ConsoleLogWriter)
+	
+	console.rec = make(chan *LogRecord, LogBufferLength)
+	console.closing = false
+    console.wg = &sync.WaitGroup{}
+	console.color = false
+	console.format = "[%T %D] [%L] [%S] %M"
+
 	r, w := io.Pipe()
 
-	console := NewOutConsoleLogWriter(w)
-
+    console.wg.Add(1)
+	go console.run(w)
+	
 	defer console.Close()
 
 	buf := make([]byte, 1024)
@@ -110,18 +118,10 @@ func TestConsoleLogWriter(t *testing.T) {
 		console.LogWrite(test.Record)
 		n, _ := r.Read(buf)
 
-		if got, want := string(buf[:n]), test.Console; got != want {
+		if got, want := string(buf[:n]), test.Console; got != (want+"\n") {
 			t.Errorf("%s:  got %q", name, got)
 			t.Errorf("%s: want %q", name, want)
 		}
-	}
-	*/
-	console := NewConsoleLogWriter()
-
-	defer console.Close()
-
-	for _, test := range logRecordWriteTests {
-		console.LogWrite(test.Record)
 	}
 }
 
@@ -328,8 +328,7 @@ func TestXMLConfig(t *testing.T) {
 	fmt.Fprintln(fd, "    <!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->")
 	fmt.Fprintln(fd, "    <level>DEBUG</level>")
 	fmt.Fprintln(fd, "        <property name=\"color\">true</property>")
-	fmt.Fprintln(fd, "        <property name=\"longformat\">true</property>")
-	fmt.Fprintln(fd, "        <property name=\"timeformat\">15:04:05</property>")
+	fmt.Fprintln(fd, "        <property name=\"format\">[%D %T] [%L] (%S) %M</property>")
 	fmt.Fprintln(fd, "  </filter>")
 	fmt.Fprintln(fd, "  <filter enabled=\"true\">")
 	fmt.Fprintln(fd, "    <tag>file</tag>")

@@ -177,17 +177,14 @@ func (log Logger) ConfigToLogWriter(filename string, cfg *Config) {
 
 func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (*ConsoleLogWriter, bool) {
 	color := true
-	longformat := false
-	timeformat := "15:04:05"
+	format := "[%D %T] [%L] (%S) %M"
 	// Parse properties
 	for _, prop := range props {
 		switch prop.Name {
 		case "color":
 			color = strings.Trim(prop.Value, " \r\n") != "false"
-		case "longformat":
-			longformat = strings.Trim(prop.Value, " \r\n") != "false"
-		case "timeformat":
-			timeformat = strings.Trim(prop.Value, " \r\n")
+		case "format":
+			format = strings.Trim(prop.Value, " \r\n")
 		default:
 			fmt.Fprintf(os.Stderr, "LoadConfig: Warning: Unknown property \"%s\" for console filter in %s\n", prop.Name, filename)
 		}
@@ -200,8 +197,7 @@ func propToConsoleLogWriter(filename string, props []kvProperty, enabled bool) (
 
 	clw := NewConsoleLogWriter()
 	clw.SetColor(color)
-	clw.SetLongFormat(longformat)
-	clw.SetTimeFormat(timeformat)
+	clw.SetFormat(format)
 	return clw, true
 }
 

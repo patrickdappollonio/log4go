@@ -12,12 +12,8 @@
 			  "value": "false"
 			},
 			{
-			  "name": "longformat",
-			  "value": "true"
-			},
-			{
-			  "name": "timeformat",
-			  "value": "15:04:05 MST 2006/01/02"
+			  "name": "format",
+			  "value": "[%D %T] [%L] (%S) %M"
 			}
 		  ]
 		},
@@ -45,7 +41,7 @@
 			},
 			{
 			  "name": "endpoint",
-			  "value": "localhost:12124"
+			  "value": "127.0.0.1:12124"
 			}
 		  ]
 		}

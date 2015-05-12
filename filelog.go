@@ -58,6 +58,7 @@ func (w *FileLogWriter) Close() {
 	}
 	w.closing = true
 	close(w.rec)
+	w.file.Sync()
     w.wg.Wait()
 }
 
