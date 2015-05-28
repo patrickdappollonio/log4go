@@ -17,15 +17,18 @@ const (
 
 type formatCacheType struct {
 	LastUpdateSeconds    int64
-	shortTime, shortDate string
-	longTime, longDate   string
+	longTime, shortTime string
+	longZone, shortZone string
+	longDate, shortDate   string
 }
 
 var formatCache = &formatCacheType{}
 
 // Known format codes:
-// %T - Time (15:04:05 MST)
+// %T - Time (15:04:05)
 // %t - Time (15:04)
+// %Z - Zone (-0700)
+// %z - Zone (MST)
 // %D - Date (2006/01/02)
 // %d - Date (01/02/06)
 // %L - Level (FNST, FINE, DEBG, TRAC, WARN, EROR, CRIT)
@@ -48,12 +51,13 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 	if cache.LastUpdateSeconds != secs {
 		month, day, year := rec.Created.Month(), rec.Created.Day(), rec.Created.Year()
 		hour, minute, second := rec.Created.Hour(), rec.Created.Minute(), rec.Created.Second()
-		zone, _ := rec.Created.Zone()
 		updated := &formatCacheType{
 			LastUpdateSeconds: secs,
 			shortTime:         fmt.Sprintf("%02d:%02d", hour, minute),
+			longTime:          fmt.Sprintf("%02d:%02d:%02d", hour, minute, second),
+			shortZone:         rec.Created.Format("MST"),
+			longZone:          rec.Created.Format("-0700"),
 			shortDate:         fmt.Sprintf("%02d/%02d/%02d", day, month, year%100),
-			longTime:          fmt.Sprintf("%02d:%02d:%02d %s", hour, minute, second, zone),
 			longDate:          fmt.Sprintf("%04d/%02d/%02d", year, month, day),
 		}
 		cache = *updated
@@ -71,6 +75,10 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 				out.WriteString(cache.longTime)
 			case 't':
 				out.WriteString(cache.shortTime)
+			case 'Z':
+				out.WriteString(cache.longZone)
+			case 'z':
+				out.WriteString(cache.shortZone)
 			case 'D':
 				out.WriteString(cache.longDate)
 			case 'd':
