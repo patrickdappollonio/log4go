@@ -171,7 +171,7 @@ func (log Logger) ConfigToLogWriter(filename string, cfg *Config) {
 			continue
 		}
 
-		log[kvfilt.Tag] = &Filter{lvl, lw}
+		log[kvfilt.Tag] = NewFilter(lvl, lw)
 	}
 }
 

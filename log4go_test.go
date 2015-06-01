@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"testing"
 	"time"
-	"sync"
 )
 
 const testLogFile = "_logtest.log"
@@ -97,17 +96,12 @@ var logRecordWriteTests = []struct {
 func TestConsoleLogWriter(t *testing.T) {
 	console := new(ConsoleLogWriter)
 	
-	console.rec = make(chan *LogRecord, LogBufferLength)
-	console.closing = false
-    console.wg = &sync.WaitGroup{}
 	console.color = false
-	console.format = "[%T %D] [%L] [%S] %M"
+	console.format = "[%T %z %D] [%L] [%S] %M"
 
 	r, w := io.Pipe()
+	console.iow = w
 
-    console.wg.Add(1)
-	go console.run(w)
-	
 	defer console.Close()
 
 	buf := make([]byte, 1024)
@@ -115,9 +109,10 @@ func TestConsoleLogWriter(t *testing.T) {
 	for _, test := range logRecordWriteTests {
 		name := test.Test
 
-		console.LogWrite(test.Record)
+		// Pipe write and read must be in diff routines otherwise cause dead lock
+		go console.LogWrite(test.Record)
+		
 		n, _ := r.Read(buf)
-
 		if got, want := string(buf[:n]), test.Console; got != (want+"\n") {
 			t.Errorf("%s:  got %q", name, got)
 			t.Errorf("%s: want %q", name, want)
@@ -166,7 +161,7 @@ func TestXMLLogWriter(t *testing.T) {
 
 	if contents, err := ioutil.ReadFile(testLogFile); err != nil {
 		t.Errorf("read(%q): %s", testLogFile, err)
-	} else if len(contents) != 185 {
+	} else if len(contents) != 177 {
 		t.Errorf("malformed xmllog: %q (%d bytes)", string(contents), len(contents))
 	}
 }
@@ -213,7 +208,6 @@ func TestLogger(t *testing.T) {
 	if err := l.Critical("%s %d %#v", "Critical:", 100, []int64{}); err.Error() != "Critical: 100 []int64{}" {
 		t.Errorf("Critical returned invalid error: %s", err)
 	}
-
 	// Already tested or basically untestable
 	//func (l *Logger) Log(level int, source, message string) {}
 	//func (l *Logger) Logf(level int, format string, args ...interface{}) {}
@@ -544,3 +538,4 @@ func BenchmarkFileUtilNotLog(b *testing.B) {
 //elog.BenchmarkFileNotLogged       2000000         821 ns/op
 //elog.BenchmarkFileUtilLog           50000       33945 ns/op
 //elog.BenchmarkFileUtilNotLog      1000000        1258 ns/op
+

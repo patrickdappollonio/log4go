@@ -58,10 +58,10 @@ import (
 
 // Version information
 const (
-	L4G_VERSION = "log4go-v3.0.5"
-	L4G_MAJOR   = 3
+	L4G_VERSION = "log4go-v4.0.0"
+	L4G_MAJOR   = 4
 	L4G_MINOR   = 0
-	L4G_BUILD   = 5
+	L4G_BUILD   = 0
 )
 
 /****** Constants ******/
@@ -130,7 +130,67 @@ type LogWriter interface {
 // the associated LogWriter.
 type Filter struct {
 	Level Level
+
+	rec 	chan *LogRecord	// write queue
+    closeq 	chan struct{}	// closed when user requests close
+	closing bool	// true if Socket was closed at API level
+
 	LogWriter
+}
+
+func NewFilter(lvl Level, writer LogWriter) *Filter {
+	f := &Filter {
+		rec: 		make(chan *LogRecord, LogBufferLength),
+	    closeq:		make(chan struct{}),
+		closing: 	false,
+		
+		Level:		lvl,
+		LogWriter:	writer,
+	}
+	
+	go f.run()
+	return f
+}
+	
+func (f *Filter) WriteToChan(rec *LogRecord) {
+	if f.closing {
+		fmt.Fprintf(os.Stderr, "LogWriter: channel has been closed. Message is [%s]\n", rec.Message)
+		return
+	}
+	f.rec <- rec
+}
+
+func (f *Filter) run() {
+	for {
+		select {
+		case <-f.closeq:
+			return
+		case rec, ok := <-f.rec:
+			if !ok {
+				return
+			}
+			f.LogWrite(rec)
+		}
+	}
+}
+
+func (f *Filter) Close() {
+	if f.closing {
+		return
+	}
+	f.closing = true
+
+	close(f.closeq)
+
+	if len(f.rec) <= 0 {
+		return
+	}
+	close(f.rec)
+	// drain the log channel before closing
+	for rec := range f.rec {
+		f.LogWrite(rec)
+	}
+	f.LogWriter.Close()
 }
 
 // A Logger represents a collection of Filters through which log messages are
@@ -152,7 +212,7 @@ func NewLogger() Logger {
 func NewConsoleLogger(lvl Level) Logger {
 	os.Stderr.WriteString("warning: use of deprecated NewConsoleLogger\n")
 	return Logger{
-		"stdout": &Filter{lvl, NewConsoleLogWriter()},
+		"stdout": NewFilter(lvl, NewConsoleLogWriter()),
 	}
 }
 
@@ -160,7 +220,7 @@ func NewConsoleLogger(lvl Level) Logger {
 // or above lvl to standard output.
 func NewDefaultLogger(lvl Level) Logger {
 	return Logger{
-		"stdout": &Filter{lvl, NewConsoleLogWriter()},
+		"stdout": NewFilter(lvl, NewConsoleLogWriter()),
 	}
 }
 
@@ -180,23 +240,35 @@ func (log Logger) Close() {
 // higher.  This function should not be called from multiple goroutines.
 // Returns the logger for chaining.
 func (log Logger) AddFilter(name string, lvl Level, writer LogWriter) Logger {
-	log[name] = &Filter{lvl, writer}
+	log[name] = NewFilter(lvl, writer)
 	return log
 }
 
 /******* Logging *******/
-// Send a formatted log message internally
-func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
-	skip := true
 
-	// Determine if any logging will be done
+// Determine if any logging will be done
+func (log Logger) skip(lvl Level) bool {
 	for _, filt := range log {
 		if lvl >= filt.Level {
-			skip = false
-			break
+			return false
 		}
 	}
-	if skip {
+	return true
+}
+
+// Dispatch the logs
+func (log Logger) dispatch(rec *LogRecord) {
+	for _, filt := range log {
+		if rec.Level < filt.Level {
+			continue
+		}
+		filt.WriteToChan(rec)
+	}
+}
+
+// Send a formatted log message internally
+func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
+	if log.skip(lvl) {
 		return
 	}
 
@@ -220,27 +292,12 @@ func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
 		Message: msg,
 	}
 
-	// Dispatch the logs
-	for _, filt := range log {
-		if lvl < filt.Level {
-			continue
-		}
-		filt.LogWrite(rec)
-	}
+	log.dispatch(rec)
 }
 
 // Send a closure log message internally
 func (log Logger) intLogc(lvl Level, closure func() string) {
-	skip := true
-
-	// Determine if any logging will be done
-	for _, filt := range log {
-		if lvl >= filt.Level {
-			skip = false
-			break
-		}
-	}
-	if skip {
+	if log.skip(lvl) {
 		return
 	}
 
@@ -259,27 +316,12 @@ func (log Logger) intLogc(lvl Level, closure func() string) {
 		Message: closure(),
 	}
 
-	// Dispatch the logs
-	for _, filt := range log {
-		if lvl < filt.Level {
-			continue
-		}
-		filt.LogWrite(rec)
-	}
+	log.dispatch(rec)
 }
 
 // Send a log message with manual level, source, and message.
 func (log Logger) Log(lvl Level, source, message string) {
-	skip := true
-
-	// Determine if any logging will be done
-	for _, filt := range log {
-		if lvl >= filt.Level {
-			skip = false
-			break
-		}
-	}
-	if skip {
+	if log.skip(lvl) {
 		return
 	}
 
@@ -291,13 +333,7 @@ func (log Logger) Log(lvl Level, source, message string) {
 		Message: message,
 	}
 
-	// Dispatch the logs
-	for _, filt := range log {
-		if lvl < filt.Level {
-			continue
-		}
-		filt.LogWrite(rec)
-	}
+	log.dispatch(rec)
 }
 
 // Send a log message with manual level, source, and message.
@@ -313,26 +349,11 @@ func (log Logger) Json(data []byte) {
 		return
 	}
 	
-	skip := true
-
-	// Determine if any logging will be done
-	for _, filt := range log {
-		if rec.Level >= filt.Level {
-			skip = false
-			break
-		}
-	}
-	if skip {
+	if log.skip(rec.Level) {
 		return
 	}
 
-	// Dispatch the logs
-	for _, filt := range log {
-		if rec.Level < filt.Level {
-			continue
-		}
-		filt.LogWrite(&rec)
-	}
+	log.dispatch(&rec)
 }
 
 // Logf logs a formatted log message at the given log level, using the caller as

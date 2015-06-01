@@ -1,3 +1,25 @@
+2015-06-11
+
+* Migrate log variables (rec, closeq, closing, etc.) into Filters
+
+* Add new method for Filter include NewFilter(), Close(), run(), WriteToChan()
+
+* When closing, Filter:
+  
+  + Drain all left msgs
+  
+  + Write them by LogWriter interface
+  
+  + Close interface
+  
+* Every Filter run a routine to recv rec and call LogWriter to write
+
+* LogWrite can be call directly, see log4go_test.go
+
+* Add new method to Logger include skip(), dispatch()
+
+Some ideas come from <https://github.com/ngmoco/timber>. Thanks.
+
 2015-05-12
 
 * Add console format. Merge from <https://github.com/alecthomas/log4go>
