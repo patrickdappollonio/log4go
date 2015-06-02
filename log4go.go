@@ -163,13 +163,13 @@ func (f *Filter) WriteToChan(rec *LogRecord) {
 func (f *Filter) run() {
 	for {
 		select {
-		case <-f.closeq:
-			return
 		case rec, ok := <-f.rec:
 			if !ok {
 				return
 			}
 			f.LogWrite(rec)
+		case <-f.closeq:
+			return
 		}
 	}
 }
