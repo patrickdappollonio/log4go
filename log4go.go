@@ -182,15 +182,16 @@ func (f *Filter) Close() {
 
 	close(f.closeq)
 
+	defer f.LogWriter.Close()
+
+	close(f.rec)
 	if len(f.rec) <= 0 {
 		return
 	}
-	close(f.rec)
 	// drain the log channel before closing
 	for rec := range f.rec {
 		f.LogWrite(rec)
 	}
-	f.LogWriter.Close()
 }
 
 // A Logger represents a collection of Filters through which log messages are
