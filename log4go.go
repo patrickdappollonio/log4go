@@ -132,7 +132,6 @@ type Filter struct {
 	Level Level
 
 	rec 	chan *LogRecord	// write queue
-    closeq 	chan struct{}	// closed when user requests close
 	closing bool	// true if Socket was closed at API level
 
 	LogWriter
@@ -141,7 +140,6 @@ type Filter struct {
 func NewFilter(lvl Level, writer LogWriter) *Filter {
 	f := &Filter {
 		rec: 		make(chan *LogRecord, LogBufferLength),
-	    closeq:		make(chan struct{}),
 		closing: 	false,
 		
 		Level:		lvl,
@@ -168,8 +166,6 @@ func (f *Filter) run() {
 				return
 			}
 			f.LogWrite(rec)
-		case <-f.closeq:
-			return
 		}
 	}
 }
@@ -179,8 +175,6 @@ func (f *Filter) Close() {
 		return
 	}
 	f.closing = true
-
-	close(f.closeq)
 
 	defer f.LogWriter.Close()
 
