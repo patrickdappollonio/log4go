@@ -1,4 +1,8 @@
-2015-06-11
+2015-06-09
+
+* Sleep before blocking logwrite channel then wait for drain
+
+2015-06-01
 
 * Migrate log variables (rec, closeq, closing, etc.) into Filters
 

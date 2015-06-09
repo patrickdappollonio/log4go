@@ -58,10 +58,10 @@ import (
 
 // Version information
 const (
-	L4G_VERSION = "log4go-v4.0.0"
+	L4G_VERSION = "log4go-v4.0.1"
 	L4G_MAJOR   = 4
 	L4G_MINOR   = 0
-	L4G_BUILD   = 0
+	L4G_BUILD   = 1
 )
 
 /****** Constants ******/
@@ -174,15 +174,26 @@ func (f *Filter) Close() {
 	if f.closing {
 		return
 	}
+	// sleep 10ms and let go routine running
+	// drain the log channel before closing
+	for i := 10; i > 0; i-- {
+		time.Sleep(10 * time.Millisecond)
+		if len(f.rec) <= 0 {
+			break
+		}
+	}
+
+	// block write channel
 	f.closing = true
 
 	defer f.LogWriter.Close()
 
 	close(f.rec)
+
 	if len(f.rec) <= 0 {
 		return
 	}
-	// drain the log channel before closing
+	// drain the log channel and write driect
 	for rec := range f.rec {
 		f.LogWrite(rec)
 	}
