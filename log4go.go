@@ -177,7 +177,7 @@ func (f *Filter) Close() {
 	// sleep 10ms and let go routine running
 	// drain the log channel before closing
 	for i := 10; i > 0; i-- {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		if len(f.rec) <= 0 {
 			break
 		}
