@@ -34,6 +34,7 @@ type FileLogWriter struct {
 
 	// Keep old logfiles (.001, .002, etc)
 	rotate bool
+	maxbackup int
 }
 
 func (w *FileLogWriter) Close() {
@@ -59,6 +60,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		filename: fname,
 		format:   "[%D %z %T] [%L] (%S) %M",
 		rotate:   rotate,
+		maxbackup: 999,
 	}
 
 	// open the file for the first time
@@ -114,16 +116,22 @@ func (w *FileLogWriter) intRotate() error {
 					fname = w.filename + fmt.Sprintf(".%s.%03d", yesterday, num)
 					_, err = os.Lstat(fname)
 				}
-			} else {
-				for ; err == nil && num <= 999; num++ {
-					fname = w.filename + fmt.Sprintf(".%s.%03d", time.Now().Format("2006-01-02"), num)
-					_, err = os.Lstat(fname)
+				// return error if the last file checked still existed
+				if err == nil {
+					return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
 				}
+			} else {
+				num = w.maxbackup - 1
+				for ; num >= 1; num-- {
+					fname = w.filename + fmt.Sprintf(".%d", num)
+					nfname := w.filename + fmt.Sprintf(".%d", num+1)
+					_, err = os.Lstat(fname)
+					if err == nil {
+						os.Rename(fname, nfname)
+					}
+ 				}
 			}
-			// return error if the last file checked still existed
-			if err == nil {
-				return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
-			}
+
 			w.file.Close()
 			// Rename the file to its newfound home
 			err = os.Rename(w.filename, fname)
@@ -203,6 +211,13 @@ func (w *FileLogWriter) SetRotateDaily(daily bool) *FileLogWriter {
 func (w *FileLogWriter) SetRotate(rotate bool) *FileLogWriter {
 	//fmt.Fprintf(os.Stderr, "FileLogWriter.SetRotate: %v\n", rotate)
 	w.rotate = rotate
+	return w
+}
+
+// Set max backup files. Must be called before the first log message
+// is written.
+func (w *FileLogWriter) SetRotateMaxBackup(maxbackup int) *FileLogWriter {
+	w.maxbackup = maxbackup
 	return w
 }
 

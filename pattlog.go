@@ -32,6 +32,7 @@ var formatCache = &formatCacheType{}
 // %d - Date (01/02/06)
 // %L - Level (FNST, FINE, DEBG, TRAC, WARN, EROR, CRIT)
 // %S - Source
+// %s - Short Source
 // %M - Message
 // Ignores unknown formats
 // Recommended: "[%D %T] [%L] (%S) %M"
