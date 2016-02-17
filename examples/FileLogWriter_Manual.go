@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"time"
+	"path/filepath"
 )
 
 import l4g "github.com/ccpaging/log4go"
@@ -19,23 +20,24 @@ func main() {
 	log := l4g.NewLogger()
 
 	// Create a default logger that is logging messages of FINE or higher
-	log.AddFilter("file", l4g.FINE, l4g.NewFileLogWriter(filename, false))
+	log.AddFilter("file", l4g.FINE, l4g.NewFileLogWriter(filename))
 	log.Close()
 
 	/* Can also specify manually via the following: (these are the defaults) */
-	flw := l4g.NewFileLogWriter(filename, false)
+	flw := l4g.NewFileLogWriter(filename)
 	flw.SetFormat("[%D %T] [%L] (%S) %M")
-	flw.SetRotate(false)
-	flw.SetRotateSize(0)
-	flw.SetRotateLines(0)
-	flw.SetRotateDaily(false)
+	flw.SetRotate(true)
+	flw.SetRotateSize(1024)
+	flw.SetRotateLines(10)
+	flw.SetRotateDaily(true)
 	log.AddFilter("file", l4g.FINE, flw)
 
 	// Log some experimental messages
-	log.Finest("Everything is created now (notice that I will not be printing to the file)")
-	log.Info("The time is now: %s", time.Now().Format("15:04:05 MST 2006/01/02"))
-	log.Critical("Time to close out!")
-
+	for cnt := 0; cnt < 100; cnt++ {
+		log.Finest("Everything is created now (notice that I will not be printing to the file)")
+		log.Info("The time is now: %s", time.Now().Format("15:04:05 MST 2006/01/02"))
+		log.Critical("Time to close out!")
+	}
 	// Close the log
 	log.Close()
 
@@ -51,7 +53,15 @@ func main() {
 		fmt.Printf("%3d:\t%s", lineno, line)
 	}
 	fd.Close()
-
+	
 	// Remove the file so it's not lying around
 	os.Remove(filename)
+
+	files, _ := filepath.Glob(filename + ".*")
+    fmt.Printf("%d files match %s.*\n", len(files), filename) // contains a list of all files in the current directory
+
+    for _, f := range files {
+		fmt.Printf("Remove %s\n", f)
+		os.Remove(f)
+    }    
 }
