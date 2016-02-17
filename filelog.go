@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+type Rotate int
+
+const (
+	FIRST Rotate = iota
+	NEWDAY
+	OVERSIZE
+)
+
 // This log writer sends output to a file
 type FileLogWriter struct {
 	// The opened file
@@ -30,7 +38,7 @@ type FileLogWriter struct {
 
 	// Rotate daily
 	daily          bool
-	daily_opendate int
+	daily_openday int
 
 	// Keep old logfiles (.001, .002, etc)
 	rotate bool
@@ -64,25 +72,25 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 	}
 
 	// open the file for the first time
-	if err := f.intRotate(); err != nil {
-		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", f.filename, err)
-		return nil
-	}
-	
+	f.intRotate(FIRST)
 	return f
 }
 
 func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 	now := time.Now()
+	
 	if (w.maxlines > 0 && w.maxlines_curlines >= w.maxlines) ||
-		(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) ||
-		(w.daily && now.Day() != w.daily_opendate) {
-		if err := w.intRotate(); err != nil {
-			fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
-			return
-		}
+		(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) {
+		
+		w.intRotate(OVERSIZE)
+	} else if w.daily && now.Day() != w.daily_openday {
+		w.intRotate(NEWDAY)
 	}
-
+	
+	if w.file == nil {
+		return
+	}
+	
 	// Perform the write
 	n, err := fmt.Fprint(w.file, FormatLogRecord(w.format, rec))
 	if err != nil {
@@ -96,7 +104,7 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 }
 
 // If this is called in a threaded context, it MUST be synchronized
-func (w *FileLogWriter) intRotate() error {
+func (w *FileLogWriter) intRotate(rotate Rotate) {
 	// Close any log file that may be open
 	if w.file != nil {
 		fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
@@ -104,48 +112,14 @@ func (w *FileLogWriter) intRotate() error {
 	}
 
 	// If we are keeping log files, move it to the next available number
-	if w.rotate {
-		_, err := os.Lstat(w.filename)
-		if err == nil { // file exists
-			// Find the next available number
-			num := 1
-			fname := ""
-			if w.daily && time.Now().Day() != w.daily_opendate {
-				yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
-				for ; err == nil && num <= 999; num++ {
-					fname = w.filename + fmt.Sprintf(".%s.%03d", yesterday, num)
-					_, err = os.Lstat(fname)
-				}
-				// return error if the last file checked still existed
-				if err == nil {
-					return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
-				}
-			} else {
-				num = w.maxbackup - 1
-				for ; num >= 1; num-- {
-					fname = w.filename + fmt.Sprintf(".%d", num)
-					nfname := w.filename + fmt.Sprintf(".%d", num+1)
-					_, err = os.Lstat(fname)
-					if err == nil {
-						os.Rename(fname, nfname)
-					}
- 				}
-			}
-
-			w.file.Close()
-			// Rename the file to its newfound home
-			err = os.Rename(w.filename, fname)
-			if err != nil {
-				return fmt.Errorf("Rotate: %s\n", err)
-			}
-		}
-	}
+	w.doRotate(rotate)
 
 	// Open the log file
 	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 		w.file = nil
-		return err
+		return
 	}
 	w.file = fd
 
@@ -153,13 +127,56 @@ func (w *FileLogWriter) intRotate() error {
 	fmt.Fprint(w.file, FormatLogRecord(w.header, &LogRecord{Created: now}))
 
 	// Set the daily open date to the current date
-	w.daily_opendate = now.Day()
+	w.daily_openday = now.Day()
 
 	// initialize rotation values
 	w.maxlines_curlines = 0
 	w.maxsize_cursize = 0
+}
 
-	return nil
+func (w *FileLogWriter) doRotate(rotate Rotate) {
+	if !w.rotate {
+		// no rotate
+		return
+	}
+	fstatus, err := os.Lstat(w.filename)
+	if err != nil {
+		// file not exists
+		return
+	}
+
+	if rotate == FIRST {
+		w.maxsize_cursize = int(fstatus.Size())
+		if w.maxsize > 0 && w.maxsize_cursize >= w.maxsize {
+			// oversized and continue
+		} else {
+			return
+		}
+	}
+
+	todate := time.Now().Format("2006-01-02")
+	if rotate == NEWDAY {
+		todate = time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	}
+
+	renameto := ""
+	for num := 1; err == nil && num <= w.maxbackup; num++ {
+		renameto = w.filename + fmt.Sprintf(".%s.%03d", todate, num)
+		_, err = os.Lstat(renameto)
+	}
+
+	// return error if the last file checked still existed
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): Cannot find free log number to rename\n", w.filename)
+		return
+	}
+
+	// Rename the file to its newfound home
+	err = os.Rename(w.filename, renameto)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", err)
+		return
+	}
 }
 
 // Set the logging format (chainable).  Must be called before the first log
