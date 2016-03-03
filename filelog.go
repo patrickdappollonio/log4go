@@ -5,6 +5,8 @@ package log4go
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -27,6 +29,9 @@ type FileLogWriter struct {
 	// Rotate at size
 	maxsize         int
 	maxsize_cursize int
+
+	// Max days for log file storage
+	maxdays int
 
 	// Rotate daily
 	daily          bool
@@ -108,6 +113,10 @@ func (w *FileLogWriter) intRotate() {
 		}
 	}
 
+	if w.maxdays > 0 {
+		go w.deleteOldLog()
+	}
+
 	// Open the log file
 	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
@@ -167,6 +176,29 @@ func (w *FileLogWriter) doRotate() error {
 	return nil
 }
 
+// Delete old log files which were expired.
+func (w *FileLogWriter) deleteOldLog() {
+	if w.maxdays <= 0 {
+		return
+	}
+	dir := filepath.Dir(w.filename)
+	base := filepath.Base(w.filename)
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintf(os.Stderr, "FileLogWriter: Unable to remove old log '%s', error: %+v\n", path, err)
+			}
+		}()
+
+		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix() - int64(60*60*24*w.maxdays)) {
+			if strings.HasPrefix(filepath.Base(path), base) {
+				os.Remove(path)
+			}
+		}
+		return
+	})
+}
+
 // Set the logging format (chainable).  Must be called before the first log
 // message is written.
 func (w *FileLogWriter) SetFormat(format string) *FileLogWriter {
@@ -201,6 +233,12 @@ func (w *FileLogWriter) SetRotateSize(maxsize int) *FileLogWriter {
 	return w
 }
 
+// Set max expire days.
+func (w *FileLogWriter) SetRotateDays(maxdays int) *FileLogWriter {
+	w.maxdays = maxdays
+	return w
+}
+
 // Set rotate daily (chainable). Must be called before the first log message is
 // written.
 func (w *FileLogWriter) SetRotateDaily(daily bool) *FileLogWriter {
@@ -221,7 +259,7 @@ func (w *FileLogWriter) SetRotate(rotate bool) *FileLogWriter {
 
 // Set max backup files. Must be called before the first log message
 // is written.
-func (w *FileLogWriter) SetRotateMaxBackup(maxbackup int) *FileLogWriter {
+func (w *FileLogWriter) SetRotateBackup(maxbackup int) *FileLogWriter {
 	w.maxbackup = maxbackup
 	return w
 }

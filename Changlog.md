@@ -1,3 +1,7 @@
+2016-03-03
+
+* start goroutine to delete expired log files. Merge from <https://github.com/yougg/log4go>
+
 2016-02-17
 
 * Append log record to current filelog if not oversized
