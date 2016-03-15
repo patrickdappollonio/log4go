@@ -53,7 +53,7 @@ func main() {
 		fmt.Printf("%3d:\t%s", lineno, line)
 	}
 	fd.Close()
-	
+
 	// Remove the file so it's not lying around
 	os.Remove(filename)
 
@@ -63,5 +63,5 @@ func main() {
     for _, f := range files {
 		fmt.Printf("Remove %s\n", f)
 		os.Remove(f)
-    }    
+    }
 }

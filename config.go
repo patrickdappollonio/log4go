@@ -77,7 +77,7 @@ func (log Logger) LoadJSONConfig(filename string, contents []byte) {
 		fmt.Fprintf(os.Stderr, "LoadConfig: Error: Could not parse Json configuration in %q: %s\n", filename, err)
 		os.Exit(1)
 	}
-	
+
 	log.ConfigToLogWriter(filename, jc)
 }
 
@@ -90,7 +90,7 @@ func (log Logger) LoadXMLConfig(filename string, contents []byte) {
 		fmt.Fprintf(os.Stderr, "LoadConfig: Error: Could not parse XML configuration in %q: %s\n", filename, err)
 		os.Exit(1)
 	}
-	
+
 	log.ConfigToLogWriter(filename, xc)
 }
 
