@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-import l4g "github.com/ccpaging/log4go"
+import l4g "github.com/patrickdappollonio/log4go"
 
 func main() {
 	log := l4g.NewLogger()

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 	"path/filepath"
+	"time"
 )
 
-import l4g "github.com/ccpaging/log4go"
+import l4g "github.com/patrickdappollonio/log4go"
 
 const (
 	filename = "flw.log"
@@ -58,10 +58,10 @@ func main() {
 	os.Remove(filename)
 
 	files, _ := filepath.Glob(filename + ".*")
-    fmt.Printf("%d files match %s.*\n", len(files), filename) // contains a list of all files in the current directory
+	fmt.Printf("%d files match %s.*\n", len(files), filename) // contains a list of all files in the current directory
 
-    for _, f := range files {
+	for _, f := range files {
 		fmt.Printf("Remove %s\n", f)
 		os.Remove(f)
-    }
+	}
 }

@@ -95,7 +95,7 @@ var logRecordWriteTests = []struct {
 
 func TestConsoleLogWriter(t *testing.T) {
 	console := new(ConsoleLogWriter)
-	
+
 	console.color = false
 	console.format = "[%T %z %D] [%L] [%S] %M"
 
@@ -111,9 +111,9 @@ func TestConsoleLogWriter(t *testing.T) {
 
 		// Pipe write and read must be in diff routines otherwise cause dead lock
 		go console.LogWrite(test.Record)
-		
+
 		n, _ := r.Read(buf)
-		if got, want := string(buf[:n]), test.Console; got != (want+"\n") {
+		if got, want := string(buf[:n]), test.Console; got != (want + "\n") {
 			t.Errorf("%s:  got %q", name, got)
 			t.Errorf("%s: want %q", name, want)
 		}
@@ -538,4 +538,3 @@ func BenchmarkFileUtilNotLog(b *testing.B) {
 //elog.BenchmarkFileNotLogged       2000000         821 ns/op
 //elog.BenchmarkFileUtilLog           50000       33945 ns/op
 //elog.BenchmarkFileUtilNotLog      1000000        1258 ns/op
-

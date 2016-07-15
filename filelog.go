@@ -38,7 +38,7 @@ type FileLogWriter struct {
 	daily_opendate time.Time
 
 	// Keep old logfiles (.001, .002, etc)
-	rotate bool
+	rotate    bool
 	maxbackup int
 }
 

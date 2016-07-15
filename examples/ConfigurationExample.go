@@ -1,10 +1,11 @@
 package main
 
 import (
-	l4g "github.com/ccpaging/log4go"
 	"encoding/json"
-	"os"
 	"fmt"
+	"os"
+
+	l4g "github.com/patrickdappollonio/log4go"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func main() {
 	defer fd.Close()
 
 	type Config struct {
-	    LogConfig json.RawMessage
+		LogConfig json.RawMessage
 	}
 
 	c := Config{}
@@ -34,8 +35,8 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Can't parse json config file: %s %v", filename, err))
 	}
-	
-    l4g.LoadConfigBuf("config.json", c.LogConfig)
+
+	l4g.LoadConfigBuf("config.json", c.LogConfig)
 	//l4g.LoadConfiguration("config.json")
 
 	// And now we're ready!
@@ -45,4 +46,3 @@ func main() {
 
 	l4g.Close()
 }
-

@@ -3,14 +3,14 @@
 package log4go
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strconv"
 	"strings"
-	"path"
-	"encoding/json"
 )
 
 type kvProperty struct {
@@ -19,10 +19,10 @@ type kvProperty struct {
 }
 
 type kvFilter struct {
-	Enabled  string        `xml:"enabled,attr"`
-	Tag      string        `xml:"tag"`
-	Level    string        `xml:"level"`
-	Type     string        `xml:"type"`
+	Enabled    string       `xml:"enabled,attr"`
+	Tag        string       `xml:"tag"`
+	Level      string       `xml:"level"`
+	Type       string       `xml:"type"`
 	Properties []kvProperty `xml:"property"`
 }
 

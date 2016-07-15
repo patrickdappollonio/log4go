@@ -15,10 +15,10 @@ const (
 )
 
 type formatCacheType struct {
-	LastUpdateSeconds    int64
+	LastUpdateSeconds   int64
 	longTime, shortTime string
 	longZone, shortZone string
-	longDate, shortDate   string
+	longDate, shortDate string
 }
 
 var formatCache = &formatCacheType{}
@@ -104,4 +104,3 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 
 	return out.String()
 }
-

@@ -11,8 +11,8 @@ import (
 
 // This log writer sends output to a socket
 type SocketLogWriter struct {
-	sock 	net.Conn
-	proto	string
+	sock     net.Conn
+	proto    string
 	hostport string
 }
 
@@ -24,9 +24,9 @@ func (w *SocketLogWriter) Close() {
 
 func NewSocketLogWriter(proto, hostport string) *SocketLogWriter {
 	s := &SocketLogWriter{
-		sock:	nil,
-		proto:	proto,
-		hostport:	hostport,
+		sock:     nil,
+		proto:    proto,
+		hostport: hostport,
 	}
 	return s
 }
@@ -61,4 +61,3 @@ func (s *SocketLogWriter) LogWrite(rec *LogRecord) {
 	s.sock.Close()
 	s.sock = nil
 }
-

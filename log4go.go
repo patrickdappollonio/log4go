@@ -46,14 +46,14 @@
 package log4go
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-    "path/filepath"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
-	"encoding/json"
 )
 
 // Version information
@@ -81,7 +81,7 @@ const (
 )
 
 // Default level passed to runtime.Caller
-const DefaultFileDepth int = 2
+var DefaultFileDepth int = 2
 
 // Logging level strings
 var (
@@ -131,25 +131,25 @@ type LogWriter interface {
 type Filter struct {
 	Level Level
 
-	rec 	chan *LogRecord	// write queue
-	closing bool	// true if Socket was closed at API level
+	rec     chan *LogRecord // write queue
+	closing bool            // true if Socket was closed at API level
 
 	LogWriter
 }
 
 func NewFilter(lvl Level, writer LogWriter) *Filter {
-	f := &Filter {
-		rec: 		make(chan *LogRecord, LogBufferLength),
-		closing: 	false,
-		
-		Level:		lvl,
-		LogWriter:	writer,
+	f := &Filter{
+		rec:     make(chan *LogRecord, LogBufferLength),
+		closing: false,
+
+		Level:     lvl,
+		LogWriter: writer,
 	}
-	
+
 	go f.run()
 	return f
 }
-	
+
 func (f *Filter) WriteToChan(rec *LogRecord) {
 	if f.closing {
 		fmt.Fprintf(os.Stderr, "LogWriter: channel has been closed. Message is [%s]\n", rec.Message)
@@ -345,7 +345,7 @@ func (log Logger) Log(lvl Level, source, message string) {
 // Send a log message with manual level, source, and message.
 func (log Logger) Json(data []byte) {
 	var rec LogRecord
-	
+
 	// Make the log record
 	err := json.Unmarshal(data, &rec)
 	if err != nil {
@@ -354,7 +354,7 @@ func (log Logger) Json(data []byte) {
 		log.intLogf(WARNING, msg)
 		return
 	}
-	
+
 	if log.skip(rec.Level) {
 		return
 	}

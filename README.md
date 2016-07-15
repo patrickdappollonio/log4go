@@ -2,15 +2,15 @@ Please see http://log4go.googlecode.com/
 
 Installation:
 
-- Run `go get github.com/ccpaging/log4go`
+- Run `go get github.com/patrickdappollonio/log4go`
 
-- Run `go install github.com/ccpaging/log4go`
+- Run `go install github.com/patrickdappollonio/log4go`
 
 Usage:
 
 - Add the following import:
 
-import l4g "github.com/ccpaging/log4go"
+import l4g "github.com/patrickdappollonio/log4go"
 
 Acknowledgements:
 
